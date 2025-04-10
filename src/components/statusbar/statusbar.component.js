@@ -20,6 +20,10 @@ class Statusbar extends Component {
     this.externalRefs = {
       categories: this.parentNode.querySelectorAll(this.refs.categories),
     };
+
+    this.lastWheelTime = 0;
+    this.wheelThreshold = 10;
+    this.wheelDelay = 500;
   }
 
   imports() {
@@ -238,9 +242,21 @@ class Statusbar extends Component {
   handleWheelScroll(event) {
     if (!event) return;
 
-    let { target, wheelDelta } = event;
+    const { target, wheelDelta, deltaY } = event;
+
+    const scrollAmount = wheelDelta !== undefined ? wheelDelta : -deltaY;
 
     if (target.shadow && target.shadow.activeElement) return;
+
+    const currentTime = new Date().getTime();
+
+    if (currentTime - this.lastWheelTime < this.wheelDelay) {
+      return;
+    }
+
+    if (Math.abs(scrollAmount) < this.wheelThreshold) {
+      return;
+    }
 
     let activeTab = -1;
     this.refs.tabs.forEach((tab, index) => {
@@ -249,11 +265,17 @@ class Statusbar extends Component {
       }
     });
 
-    if (wheelDelta > 0) {
+    if (activeTab === -1) return;
+
+    this.lastWheelTime = currentTime;
+
+    if (scrollAmount > 0) {
       this.activateByKey((activeTab + 1) % (this.refs.tabs.length - 1));
     } else {
       this.activateByKey(activeTab - 1 < 0 ? this.refs.tabs.length - 2 : activeTab - 1);
     }
+
+    event.preventDefault();
   }
 
   handleKeyPress(event) {
